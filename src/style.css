@@ -4,8 +4,8 @@
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color: rgba(255, 255, 255, 0.87); /* 修改文字顏色為白色 */
+  background-color: #121212; /* 修改背景色為深色 */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -16,20 +16,11 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+  color: #9fa6e4; /* 修改超連結文字顏色 */
+  text-decoration: none;
 }
 a:hover {
-  color: #535bf2;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+  color: #c7ceff; /* 修改超連結 hover 文字顏色 */
 }
 
 body {
@@ -52,12 +43,12 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #272727; /* 修改按鈕背景色 */
   cursor: pointer;
   transition: border-color 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: #9fa6e4; /* 修改按鈕 hover 邊框顏色 */
 }
 button:focus,
 button:focus-visible {

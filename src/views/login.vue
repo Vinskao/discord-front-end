@@ -6,11 +6,23 @@
     <form @submit.prevent="login">
       <div class="mb-3">
         <label for="username" class="form-label">Username</label>
-        <input type="text" class="form-control" id="username" v-model="username" required>
+        <input
+          type="text"
+          class="form-control"
+          id="username"
+          v-model="username"
+          required
+        />
       </div>
       <div class="mb-3">
         <label for="password" class="form-label">Password</label>
-        <input type="password" class="form-control" id="password" v-model="password" required>
+        <input
+          type="password"
+          class="form-control"
+          id="password"
+          v-model="password"
+          required
+        />
       </div>
       <button type="submit" class="btn btn-primary">Login</button>
     </form>
@@ -19,26 +31,36 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import Layout from '../layouts/Layout.vue';
+import { ref } from "vue";
+import Layout from "../layouts/Layout.vue";
+import axios from "axios";
 
-const username = ref('');
-const password = ref('');
-const errorMessage = ref('');
+const username = ref("");
+const password = ref("");
+const errorMessage = ref("");
 
-const login = () => {
-  // 在此处编写登录逻辑，例如向服务器发送登录请求
-  if (username.value === 'admin' && password.value === 'password') {
-    // 登录成功，可以跳转到其他页面
-    console.log('Login successful');
-  } else {
-    // 登录失败，显示错误消息
-    errorMessage.value = 'Invalid username or password';
+const login = async () => {
+  try {
+    const response = await axios.post("", {
+      username: username.value,
+      password: password.value,
+    });
+    console.log(response.data);
+    if (response.status === 200) {
+      console.log("Login successful");
+    } else {
+      errorMessage.value = "Invalid username or password";
+    }
+  } catch {
+    console.error("Error:", error);
+    errorMessage.value = "An error occurred while processing your request";
   }
 };
 </script>
 
 <style scoped>
+@import url("../style.css");
+
 .login-container {
   max-width: 400px;
   margin: auto;
