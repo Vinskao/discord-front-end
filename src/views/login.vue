@@ -1,3 +1,4 @@
+<!-- src/views/login.vue -->
 <template>
   <Layout />
 
@@ -34,24 +35,31 @@
 import { ref } from "vue";
 import Layout from "../layouts/Layout.vue";
 import axios from "axios";
+import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 
+const store = useStore();
 const username = ref("");
 const password = ref("");
 const errorMessage = ref("");
+const router = useRouter();
 
 const login = async () => {
   try {
-    const response = await axios.post("", {
-      username: username.value,
-      password: password.value,
-    });
+    const userData = {
+      name: username.value,
+      password: password.value
+    };
+    const response = await axios.post(`${import.meta.env.VITE_HOST_URL}/Users/login`, userData);
     console.log(response.data);
     if (response.status === 200) {
       console.log("Login successful");
+      await store.dispatch('auth/login'); 
+      router.push('/index');
     } else {
       errorMessage.value = "Invalid username or password";
     }
-  } catch {
+  } catch (error) {
     console.error("Error:", error);
     errorMessage.value = "An error occurred while processing your request";
   }

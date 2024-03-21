@@ -1,6 +1,8 @@
+// store/getters.js
+
 const getters = {
-    loggedIn(state) {
-        return state.user !== null;
+    isLoggedIn(state) {
+        return state.auth.isLoggedIn;
     },
 };
 export default getters;

@@ -1,6 +1,10 @@
+// router/index.js
+
+
 import {createRouter, createWebHashHistory} from 'vue-router'
 import index from '../views/index.vue'
 import login from '../views/login.vue'
+import { useStore } from 'vuex';
 
 const routes = [
   {
@@ -23,8 +27,9 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  const isLoggedIn = false; 
-
+  const store = useStore();
+  const isLoggedIn = store.getters['isLoggedIn'];
+  console.log(isLoggedIn);
   if (to.path === '/login') {
       if (isLoggedIn) {
           next('/index');
