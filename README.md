@@ -2,7 +2,7 @@
 1. 登入功能：/src/view/login.vue
 2. 資產檢索功能：/src/view/index.vue
 3. 上傳檔案功能：/src/view/index.vue
-3. 下載檔案功能：/src/view/index.vue
+4. 下載檔案功能：/src/view/index.vue
 
 ### 預覽畫面
 
