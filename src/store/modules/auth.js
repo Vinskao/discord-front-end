@@ -6,16 +6,24 @@ export default {
     },
     mutations: {
         setLoggedIn(state, isLoggedIn) {
-        state.isLoggedIn = isLoggedIn;
-        localStorage.setItem('isLoggedIn', isLoggedIn); 
+            state.isLoggedIn = isLoggedIn;
+            localStorage.setItem('isLoggedIn', isLoggedIn);
+        },
+        clearLocalStorage(state) {
+            for (const key in localStorage) {
+                if (key !== 'isLoggedIn') {
+                    localStorage.removeItem(key);
+                }
+            }
         },
     },
     actions: {
         login({ commit }) {
-        commit('setLoggedIn', true);
+            commit('setLoggedIn', true);
         },
         logout({ commit }) {
-        commit('setLoggedIn', false);
+            commit('setLoggedIn', false);
+            commit('clearLocalStorage');
         },
     },
 };

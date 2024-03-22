@@ -7,23 +7,11 @@
     <form @submit.prevent="login">
       <div class="mb-3">
         <label for="username" class="form-label">Username</label>
-        <input
-          type="text"
-          class="form-control"
-          id="username"
-          v-model="username"
-          required
-        />
+        <input type="text" class="form-control" id="username" v-model="username" required />
       </div>
       <div class="mb-3">
         <label for="password" class="form-label">Password</label>
-        <input
-          type="password"
-          class="form-control"
-          id="password"
-          v-model="password"
-          required
-        />
+        <input type="password" class="form-control" id="password" v-model="password" required />
       </div>
       <button type="submit" class="btn btn-primary">Login</button>
     </form>
@@ -54,7 +42,8 @@ const login = async () => {
     console.log(response.data);
     if (response.status === 200) {
       console.log("Login successful");
-      await store.dispatch('auth/login'); 
+      localStorage.setItem('user', username.value);
+      await store.dispatch('auth/login');
       router.push('/index');
     } else {
       errorMessage.value = "Invalid username or password";
