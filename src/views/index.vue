@@ -6,12 +6,7 @@
     <h5>選擇要操作的部門</h5>
     <div class="unit-container">
       <ul v-if="units.length" class="unit-list">
-        <li
-          v-for="unit in units"
-          :key="unit.id"
-          @click="handleUnitClick(unit.id)"
-          class="unit-item"
-        >
+        <li v-for="unit in units" :key="unit.id" @click="handleUnitClick(unit.id)" class="unit-item">
           {{ unit.id }} - {{ unit.name }}
         </li>
       </ul>
@@ -83,39 +78,19 @@
               <input v-model="asset.assetNumber" type="text" disabled />
             </td>
             <td>
-              <input
-                v-model="asset.assetName"
-                type="text"
-                :disabled="!editingAsset"
-              />
+              <input v-model="asset.assetName" type="text" :disabled="!editingAsset" />
             </td>
             <td>
-              <input
-                v-model="asset.unitOfUse"
-                type="text"
-                :disabled="!editingAsset"
-              />
+              <input v-model="asset.unitOfUse" type="text" :disabled="!editingAsset" />
             </td>
             <td>
-              <input
-                v-model="asset.user"
-                type="text"
-                :disabled="!editingAsset"
-              />
+              <input v-model="asset.user" type="text" :disabled="!editingAsset" />
             </td>
             <td>
-              <input
-                v-model="asset.creationDate"
-                type="date"
-                :disabled="!editingAsset"
-              />
+              <input v-model="asset.creationDate" type="date" :disabled="!editingAsset" />
             </td>
             <td>
-              <input
-                v-model="asset.value"
-                type="number"
-                :disabled="!editingAsset"
-              />
+              <input v-model="asset.value" type="number" :disabled="!editingAsset" />
             </td>
             <td>
               <button @click="editAsset(asset)">修改</button>
@@ -244,7 +219,7 @@ const handleUnitClick = async (unitId) => {
       localStorage.setItem("unitId", dataId.id);
       localStorage.setItem("unitOfUse", dataId.name);
     } else {
-      console.error("未从 responseId.data[0] 中获取到有效数据");
+      console.error("沒有從 responseId.data[0] 中獲取到有效Data");
     }
 
     Swal.close();
@@ -304,18 +279,15 @@ const addNewAsset = async () => {
       },
     });
 
-    // 发送新增资产的请求
     await axios.post(
       `${import.meta.env.VITE_HOST_URL}/assets/add`,
       newAsset.value
     );
 
-    // 添加成功后，重新加载资产列表
     await handleUnitClick(localStorage.getItem("unitId"));
 
     Swal.fire("Success", "資產已成功新增。", "success");
 
-    // 清空新增资产表单
     clearNewAssetForm();
 
     Swal.close();
@@ -325,7 +297,6 @@ const addNewAsset = async () => {
   }
 };
 
-// 清空新增资产表单
 const clearNewAssetForm = () => {
   newAsset.value = {
     assetNumber: "",
