@@ -6,7 +6,12 @@
     <h5>選擇要操作的部門</h5>
     <div class="unit-container">
       <ul v-if="units.length" class="unit-list">
-        <li v-for="unit in units" :key="unit.id" @click="handleUnitClick(unit.id)" class="unit-item">
+        <li
+          v-for="unit in units"
+          :key="unit.id"
+          @click="handleUnitClick(unit.id)"
+          class="unit-item"
+        >
           {{ unit.id }} - {{ unit.name }}
         </li>
       </ul>
@@ -27,7 +32,6 @@
               <th>資產編號</th>
               <th>資產名稱</th>
               <th>使用部門</th>
-              <th>部門編號</th>
               <th>使用人</th>
               <th>創建日期</th>
               <th>價值</th>
@@ -38,13 +42,17 @@
             <tr>
               <td><input v-model="newAsset.assetNumber" type="text" /></td>
               <td><input v-model="newAsset.assetName" type="text" /></td>
+
               <td>
-                <input v-model="newAsset.unitOfUse" type="text" readonly />
+                <input v-model="newAsset.unitId" type="text" readonly />{{
+                  unitOfUse
+                }}
               </td>
               <td>
-                <input v-model="newAsset.unitId" type="text" readonly />
+                <input v-model="newAsset.userId" type="text" readonly />{{
+                  username
+                }}
               </td>
-              <td><input v-model="newAsset.user" type="text" readonly /></td>
               <td><input v-model="newAsset.creationDate" type="date" /></td>
               <td><input v-model="newAsset.value" type="number" /></td>
               <td><button @click="addNewAsset">確定</button></td>
@@ -65,10 +73,10 @@
           <tr>
             <th>資產編號</th>
             <th>資產名稱</th>
-            <th>使用部門</th>
-            <th>使用人</th>
+            <th>使用人ID</th>
             <th>創建日期</th>
             <th>價值</th>
+            <th>使用部門ID</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -78,19 +86,39 @@
               <input v-model="asset.assetNumber" type="text" disabled />
             </td>
             <td>
-              <input v-model="asset.assetName" type="text" :disabled="!editingAsset" />
+              <input
+                v-model="asset.assetName"
+                type="text"
+                :disabled="!editingAsset"
+              />
             </td>
             <td>
-              <input v-model="asset.unitOfUse" type="text" :disabled="!editingAsset" />
+              <input
+                v-model="asset.userId"
+                type="text"
+                :disabled="!editingAsset"
+              />
             </td>
             <td>
-              <input v-model="asset.user" type="text" :disabled="!editingAsset" />
+              <input
+                v-model="asset.creationDate"
+                type="date"
+                :disabled="!editingAsset"
+              />
             </td>
             <td>
-              <input v-model="asset.creationDate" type="date" :disabled="!editingAsset" />
+              <input
+                v-model="asset.value"
+                type="number"
+                :disabled="!editingAsset"
+              />
             </td>
             <td>
-              <input v-model="asset.value" type="number" :disabled="!editingAsset" />
+              <input
+                v-model="asset.unitId"
+                type="number"
+                :disabled="!editingAsset"
+              />
             </td>
             <td>
               <button @click="editAsset(asset)">修改</button>
@@ -125,15 +153,16 @@ const error = ref("");
 const assets = ref([]);
 const editingAsset = ref(null);
 const selectedUnit = ref(false);
+const username = ref(localStorage.getItem("username"));
+const unitOfUse = ref(localStorage.getItem("unitOfUse"));
 
 const newAsset = ref({
   assetNumber: "",
   assetName: "",
-  unitOfUse: localStorage.getItem("unitOfUse"),
-  unitId: localStorage.getItem("unitId"),
-  user: localStorage.getItem("user"),
+  userId: localStorage.getItem("userId"),
   creationDate: "",
   value: 0,
+  unitId: localStorage.getItem("unitId"),
 });
 const showAddForm = ref(false);
 
@@ -166,12 +195,11 @@ onMounted(async () => {
 });
 
 const handleUnitClick = async (unitId) => {
-
   localStorage.setItem("unitId", unitId);
   // 在localStorage存id + name ， 傳入 newAsset ref
   try {
     const responseId = await axios.post(
-      `${import.meta.env.VITE_HOST_URL}/units/findById`,
+      `${import.meta.env.VITE_HOST_URL}/units/find-by-id`,
       {
         unitId: unitId,
       }
@@ -189,9 +217,8 @@ const handleUnitClick = async (unitId) => {
     } else {
       console.error("沒有從 responseId.data[0] 中獲取到有效Data");
     }
-  } catch (error) {
-  }
-  // 使用unitId顯示部門下的資產 
+  } catch (error) {}
+  // 使用unitId顯示部門下的資產
   try {
     Swal.fire({
       title: "Loading...",
@@ -212,8 +239,7 @@ const handleUnitClick = async (unitId) => {
     Swal.close();
     error.value = "獲取選定部門的資產時發生錯誤。";
   }
-  selectedUnit.value = true
-
+  selectedUnit.value = true;
 };
 
 const editAsset = (asset) => {
@@ -311,7 +337,9 @@ const generateExcel = async () => {
       { responseType: "blob" }
     );
     // Blob URL 生成
-    const blob = new Blob([response.data], { type: response.headers["content-type"] });
+    const blob = new Blob([response.data], {
+      type: response.headers["content-type"],
+    });
     const url = window.URL.createObjectURL(blob);
 
     // 創建 <a> label 用於下載
@@ -327,12 +355,12 @@ const generateExcel = async () => {
     Swal.fire("Error", "產生Excel檔案時發生錯誤。", "error");
     Swal.close();
   }
-}
+};
 
 const handleFileUpload = (event) => {
   const file = event.target.files[0];
   assets.csv = file;
-}
+};
 
 const uploadCSV = async () => {
   try {
@@ -362,13 +390,11 @@ const uploadCSV = async () => {
     Swal.fire("Error", "上傳 CSV 文件操作錯誤。", "error");
     Swal.close();
   }
-
-}
+};
 
 const clearUploadedFile = () => {
   assets.csv = null;
 };
-
 </script>
 
 <style>
@@ -460,7 +486,6 @@ h5 {
   cursor: pointer;
   border-radius: 5px;
 }
-
 
 /* 表格樣式 */
 .add-asset-table {

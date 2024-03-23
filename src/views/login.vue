@@ -6,12 +6,18 @@
     <h2>Login</h2>
     <form @submit.prevent="login">
       <div class="mb-3">
-        <label for="username" class="form-label">Username</label>
-        <input type="text" class="form-control" id="username" v-model="username" required />
+        <label for="id" class="form-label">User Id</label>
+        <input type="text" class="form-control" id="id" v-model="id" required />
       </div>
       <div class="mb-3">
         <label for="password" class="form-label">Password</label>
-        <input type="password" class="form-control" id="password" v-model="password" required />
+        <input
+          type="password"
+          class="form-control"
+          id="password"
+          v-model="password"
+          required
+        />
       </div>
       <button type="submit" class="btn btn-primary">Login</button>
     </form>
@@ -23,11 +29,11 @@
 import { ref } from "vue";
 import Layout from "../layouts/Layout.vue";
 import axios from "axios";
-import { useRouter } from 'vue-router';
-import { useStore } from 'vuex';
+import { useRouter } from "vue-router";
+import { useStore } from "vuex";
 
 const store = useStore();
-const username = ref("");
+const id = ref("");
 const password = ref("");
 const errorMessage = ref("");
 const router = useRouter();
@@ -35,18 +41,34 @@ const router = useRouter();
 const login = async () => {
   try {
     const userData = {
-      name: username.value,
-      password: password.value
+      id: id.value,
+      password: password.value,
     };
-    const response = await axios.post(`${import.meta.env.VITE_HOST_URL}/Users/login`, userData);
-    console.log(response.data);
+    // 登入驗證
+    const response = await axios.post(
+      `${import.meta.env.VITE_HOST_URL}/users/login`,
+      userData
+    );
     if (response.status === 200) {
       console.log("Login successful");
-      localStorage.setItem('user', username.value);
-      await store.dispatch('auth/login');
-      router.push('/index');
+      localStorage.setItem("userId", id.value);
+      // 取得使用者資料
+      const userId = {
+        id: id.value,
+      };
+      const userResponse = await axios.post(
+        `${import.meta.env.VITE_HOST_URL}/users/find-by-id`,
+        userId
+      );
+      const user = userResponse.data[0];
+      if (user) {
+        // 將使用者名稱儲存在localStorage中
+        localStorage.setItem("username", user.name);
+      }
+      await store.dispatch("auth/login");
+      router.push("/index");
     } else {
-      errorMessage.value = "Invalid username or password";
+      errorMessage.value = "Invalid id or password";
     }
   } catch (error) {
     console.error("Error:", error);
