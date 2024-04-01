@@ -8,16 +8,11 @@
     <div v-else class="room-content">
       <div class="room">
         <div class="messages" ref="messagesContainer">
-          <div
-            v-for="(msg, index) in messages"
-            :key="index"
-            :class="{
-              'my-message': isMyMessage(msg.username),
-              'other-message': !isMyMessage(msg.username),
-              'system-message': msg.type === 'JOIN' || msg.type === 'LEAVE',
-            }"
-            class="message"
-          >
+          <div v-for="(msg, index) in messages" :key="index" :class="{
+      'my-message': isMyMessage(msg.username),
+      'other-message': !isMyMessage(msg.username),
+      'system-message': msg.type === 'JOIN' || msg.type === 'LEAVE',
+    }" class="message">
             <div v-if="msg.type === 'JOIN' || msg.type === 'LEAVE'">
               <em>{{ msg.message }}</em>
               <span class="message-time">{{ formatTime(msg.time) }}</span>
@@ -31,11 +26,7 @@
         </div>
 
         <div class="input-area">
-          <input
-            type="text"
-            v-model="inputMessage"
-            placeholder="請輸入訊息..."
-          />
+          <input type="text" v-model="inputMessage" placeholder="請輸入訊息..." />
           <button @click="sendMessage">傳</button>
           <button @click="leaveRoom(props.roomId)" class="leave-btn">離</button>
         </div>
@@ -160,6 +151,31 @@ watch(
   { immediate: true }
 );
 
+onMounted(async () => {
+  // 检查会话状态
+  try {
+    const sessionResponse = await axios.post(`${import.meta.env.VITE_HOST_URL}/user/check-session`);
+    console.log(sessionResponse.data);
+    if (sessionResponse.data === "0") {
+      // 如果用户未登录（会话检查返回0），重定向到登录页面
+      window.location.href = '/login'; // 使用window.location.href进行重定向
+    }
+  } catch (error) {
+    console.error("会话检查失败:", error);
+  }
+  const userInfoStr = localStorage.getItem("userInfo"); // 從 localStorage 獲取用戶信息
+  if (userInfoStr) {
+    userInfo.value = JSON.parse(userInfoStr); // 解析並存儲用戶信息
+  }
+  connectStomp();
+  await loadMessages();
+});
+// 組件卸載前執行
+onBeforeUnmount(() => {
+  if (stompClient && isConnected) {
+    stompClient.disconnect(() => console.log("STOMP 客戶端已斷開連接。"));
+  }
+});
 // WebSocket 服務器的 URL
 const SOCKET_URL = `${import.meta.env.VITE_HOST_URL}/ws-message`;
 // 是否已連接到 WebSocket 服務器
@@ -311,21 +327,7 @@ const loadMessages = async (roomId) => {
     console.error("載入訊息時發生錯誤:", error);
   }
 };
-// 組件掛載後執行
-onMounted(async () => {
-  const userInfoStr = localStorage.getItem("userInfo"); // 從 localStorage 獲取用戶信息
-  if (userInfoStr) {
-    userInfo.value = JSON.parse(userInfoStr); // 解析並存儲用戶信息
-  }
-  connectStomp();
-  await loadMessages();
-});
-// 組件卸載前執行
-onBeforeUnmount(() => {
-  if (stompClient && isConnected) {
-    stompClient.disconnect(() => console.log("STOMP 客戶端已斷開連接。"));
-  }
-});
+
 
 const fetchRoomUsers = async (roomId) => {
   try {
@@ -342,72 +344,101 @@ const fetchRoomUsers = async (roomId) => {
 
 <style>
 .room-container {
-  display: flex; /* 使用 Flexbox 佈局 */
-  align-items: flex-start; /* 頂部對齊 */
+  display: flex;
+  /* 使用 Flexbox 佈局 */
+  align-items: flex-start;
+  /* 頂部對齊 */
 }
 
 .room-content {
-  display: flex; /* 也使用 Flexbox 佈局來並排顯示 .room 和 .user-sidebar */
-  flex: 1; /* 確保它填充父容器的剩餘空間 */
-  overflow-y: auto; /* 內容過多時可滾動 */
+  display: flex;
+  /* 也使用 Flexbox 佈局來並排顯示 .room 和 .user-sidebar */
+  flex: 1;
+  /* 確保它填充父容器的剩餘空間 */
+  overflow-y: auto;
+  /* 內容過多時可滾動 */
 }
 
 .room {
-  flex: 1; /* 確保聊天室內容填充可用空間 */
-  overflow-y: auto; /* 內容過多時可滾動 */
+  flex: 1;
+  /* 確保聊天室內容填充可用空間 */
+  overflow-y: auto;
+  /* 內容過多時可滾動 */
 }
 
 .user-sidebar {
-  width: 100px; /* 用戶列表側邊欄寬度 */
-  background-color: #2c3e50; /* 背景色 */
-  margin-left: 20px; /* 與聊天室內容間距 */
-  padding: 10px; /* 內邊距 */
-  overflow-y: auto; /* 內容過多時可滾動 */
+  width: 100px;
+  /* 用戶列表側邊欄寬度 */
+  background-color: #2c3e50;
+  /* 背景色 */
+  margin-left: 20px;
+  /* 與聊天室內容間距 */
+  padding: 10px;
+  /* 內邊距 */
+  overflow-y: auto;
+  /* 內容過多時可滾動 */
 }
 
 .user-entry {
-  margin-bottom: 10px; /* 用戶條目間距 */
-  padding: 5px; /* 用戶條目內邊距 */
-  background-color: #10bd3b; /* 用戶條目背景色 */
-  border-radius: 5px; /* 圓角 */
+  margin-bottom: 10px;
+  /* 用戶條目間距 */
+  padding: 5px;
+  /* 用戶條目內邊距 */
+  background-color: #10bd3b;
+  /* 用戶條目背景色 */
+  border-radius: 5px;
+  /* 圓角 */
 }
+
 .system-message {
   text-align: center;
   color: #888;
 }
+
 .messages {
   display: flex;
   flex-direction: column;
   padding: 10px;
-  overflow-y: auto; /* 如果訊息太多，允許滾動 */
-  height: 500px; /* 根據需要調整高度 */
+  overflow-y: auto;
+  /* 如果訊息太多，允許滾動 */
+  height: 500px;
+  /* 根據需要調整高度 */
 }
 
 .message {
   max-width: 80%;
   margin-bottom: 10px;
   padding: 10px;
-  border-radius: 15px; /* 圓角邊框 */
-  word-wrap: break-word; /* 避免長訊息溢出 */
+  border-radius: 15px;
+  /* 圓角邊框 */
+  word-wrap: break-word;
+  /* 避免長訊息溢出 */
 }
 
 .my-message {
-  align-self: flex-end; /* 將個人訊息靠右顯示 */
-  background-color: #3498db; /* 個人訊息的背景色 */
-  color: white; /* 文本顏色 */
+  align-self: flex-end;
+  /* 將個人訊息靠右顯示 */
+  background-color: #3498db;
+  /* 個人訊息的背景色 */
+  color: white;
+  /* 文本顏色 */
 }
 
 .other-message {
-  align-self: flex-start; /* 將他人的訊息靠左顯示 */
-  background-color: #ecf0f1; /* 他人訊息的背景色 */
-  color: #2c3e50; /* 文本顏色 */
+  align-self: flex-start;
+  /* 將他人的訊息靠左顯示 */
+  background-color: #ecf0f1;
+  /* 他人訊息的背景色 */
+  color: #2c3e50;
+  /* 文本顏色 */
 }
 
 .message-time {
   display: block;
   font-size: 0.75em;
   margin-top: 5px;
-  color: #bdc3c7; /* 時間戳顏色 */
+  color: #bdc3c7;
+  /* 時間戳顏色 */
 }
 
 /* 美化輸入區域 */
@@ -417,38 +448,52 @@ const fetchRoomUsers = async (roomId) => {
 }
 
 input[type="text"] {
-  flex-grow: 1; /* 輸入框填充剩餘空間 */
+  flex-grow: 1;
+  /* 輸入框填充剩餘空間 */
   padding: 10px;
-  border-radius: 20px; /* 圓角邊框 */
+  border-radius: 20px;
+  /* 圓角邊框 */
   border: 1px solid #bdc3c7;
-  margin-right: 10px; /* 與傳送按鈕的間距 */
+  margin-right: 10px;
+  /* 與傳送按鈕的間距 */
 }
 
 button {
   padding: 10px 20px;
-  border-radius: 20px; /* 圓角按鈕 */
-  background-color: #3498db; /* 按鈕背景色 */
-  color: white; /* 文本顏色 */
-  border: none; /* 移除邊框 */
-  cursor: pointer; /* 鼠標懸停時顯示手型指針 */
+  border-radius: 20px;
+  /* 圓角按鈕 */
+  background-color: #3498db;
+  /* 按鈕背景色 */
+  color: white;
+  /* 文本顏色 */
+  border: none;
+  /* 移除邊框 */
+  cursor: pointer;
+  /* 鼠標懸停時顯示手型指針 */
 }
 
 button:hover {
-  background-color: #2980b9; /* 鼠標懸停時的背景色 */
+  background-color: #2980b9;
+  /* 鼠標懸停時的背景色 */
 }
 
 .leave-btn {
-  background-color: #e74c3c; /* 設置為紅色背景 */
+  background-color: #e74c3c;
+  /* 設置為紅色背景 */
 }
 
 .leave-btn:hover {
-  background-color: #c0392b; /* 鼠標懸停時的背景色變深 */
+  background-color: #c0392b;
+  /* 鼠標懸停時的背景色變深 */
 }
 
 .no-room-selected {
   text-align: center;
-  margin-top: 50px; /* 或根據需要調整 */
-  font-size: 18px; /* 或根據需要調整 */
-  color: #bdc3c7; /* 或根據需要調整 */
+  margin-top: 50px;
+  /* 或根據需要調整 */
+  font-size: 18px;
+  /* 或根據需要調整 */
+  color: #bdc3c7;
+  /* 或根據需要調整 */
 }
 </style>

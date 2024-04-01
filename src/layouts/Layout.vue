@@ -1,6 +1,7 @@
 <script setup>
 import { useRouter } from "vue-router";
 import axios from "axios";
+import Swal from 'sweetalert2';
 
 const router = useRouter();
 
@@ -8,40 +9,63 @@ const logout = async () => {
   try {
     await axios.post(`${import.meta.env.VITE_HOST_URL}/user/logout`);
     localStorage.removeItem("userInfo");
+    await Swal.fire({
+      icon: 'success',
+      title: '您已登出',
+      showConfirmButton: false,
+      timer: 700
+    });
     router.push("/login");
   } catch (error) {
     console.error("Error during logout:", error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Oops...',
+      text: '請重試'
+    });
   }
 };
 </script>
+<style scoped>
+.transparent-navbar {
+  background-color: rgba(0, 0, 0, 0);
+}
+
+.horizontal-navbar {
+  display: flex;
+  flex-direction: row;
+  /* Ensures items are arranged in a row */
+  align-items: center;
+  /* Vertically centers the nav items */
+}
+
+.nav-item.nav-link {
+  margin-right: 20px;
+  /* Adds some space between nav items */
+}
+
+.logout-button {
+  background-color: transparent;
+  border: none;
+  color: grey;
+  transition: color 0.2s ease-in-out, font-weight 0.2s ease-in-out;
+}
+
+.logout-button:hover {
+  color: red;
+  font-weight: bold;
+}
+</style>
 
 <template>
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <nav class="navbar navbar-dark fixed-top transparent-navbar">
     <div class="container-fluid">
-      <a class="navbar-brand" href="#">聊天系統</a>
-      <button
-        class="navbar-toggler"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#navbarNav"
-        aria-controls="navbarNav"
-        aria-expanded="false"
-        aria-label="Toggle navigation"
-      >
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav">
-          <li class="nav-item">
-            <router-link class="nav-link" to="/index">Home</router-link>
-          </li>
-          <li class="nav-item">
-            <router-link class="nav-link" to="/login">Login</router-link>
-          </li>
-          <li class="nav-item" style="margin: auto">
-            <button class="nav-link" @click="logout">Logout</button>
-          </li>
-        </ul>
+      <div class="navbar-nav horizontal-navbar">
+        <router-link class="nav-item nav-link" to="/index">聊天</router-link>
+        <router-link class="nav-item nav-link" to="/register">註冊</router-link>
+        <router-link class="nav-item nav-link" to="/login">登入</router-link>
+        <router-link class="nav-item nav-link" to="/security">安全</router-link>
+        <button class="nav-item nav-link logout-button" @click="logout">登出</button>
       </div>
     </div>
   </nav>
