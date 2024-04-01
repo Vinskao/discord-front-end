@@ -6,8 +6,14 @@
     <h2>Login</h2>
     <form @submit.prevent="login">
       <div class="mb-3">
-        <label for="id" class="form-label">User Id</label>
-        <input type="text" class="form-control" id="id" v-model="id" required />
+        <label for="username" class="form-label">Username</label>
+        <input
+          type="text"
+          class="form-control"
+          id="id"
+          v-model="username"
+          required
+        />
       </div>
       <div class="mb-3">
         <label for="password" class="form-label">Password</label>
@@ -30,10 +36,8 @@ import { ref } from "vue";
 import Layout from "../layouts/Layout.vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
-import { useStore } from "vuex";
-
-const store = useStore();
-const id = ref("");
+axios.defaults.withCredentials = true;
+const username = ref("");
 const password = ref("");
 const errorMessage = ref("");
 const router = useRouter();
@@ -41,31 +45,20 @@ const router = useRouter();
 const login = async () => {
   try {
     const userData = {
-      id: id.value,
+      username: username.value,
       password: password.value,
     };
     // 登入驗證
     const response = await axios.post(
-      `${import.meta.env.VITE_HOST_URL}/users/login`,
+      `${import.meta.env.VITE_HOST_URL}/user/login`,
       userData
     );
     if (response.status === 200) {
       console.log("Login successful");
-      localStorage.setItem("userId", id.value);
-      // 取得使用者資料
-      const userId = {
-        id: id.value,
-      };
-      const userResponse = await axios.post(
-        `${import.meta.env.VITE_HOST_URL}/users/find-by-id`,
-        userId
-      );
-      const user = userResponse.data[0];
-      if (user) {
-        // 將使用者名稱儲存在localStorage中
-        localStorage.setItem("username", user.name);
-      }
-      await store.dispatch("auth/login");
+      const user = response.data;
+      console.log("User object:", user);
+      const { password, ...userInfo } = response.data; // 解構賦值並排除密碼
+      localStorage.setItem("userInfo", JSON.stringify(userInfo)); // 儲存用戶資訊到 localStorage
       router.push("/index");
     } else {
       errorMessage.value = "Invalid id or password";
