@@ -15,7 +15,17 @@
                 <label for="password">Password</label>
                 <input v-model="password" type="password" id="password" required>
             </div>
+            <!-- 生日输入框 -->
+            <div class="form-group">
+                <label for="birthday">Birthday</label>
+                <input v-model="birthday" type="datetime-local" id="birthday" required>
+            </div>
 
+            <!-- 兴趣输入框 -->
+            <div class="form-group">
+                <label for="interests">Interests</label>
+                <input v-model="interests" type="text" id="interests" required>
+            </div>
             <button type="submit">註冊</button>
         </form>
     </div>
@@ -33,12 +43,23 @@ axios.defaults.withCredentials = true;
 
 const username = ref('');
 const password = ref('');
+const birthday = ref('');
+const interests = ref('');
 const router = useRouter();
 const register = async () => {
+    const currentDateTime = new Date();
+    const selectedBirthday = new Date(birthday.value);
+    // 检查生日是否超过当前日期
+    if (selectedBirthday > currentDateTime) {
+        await Swal.fire('错误', '生日不能超过当前日期', 'error');
+        return;
+    }
     try {
         const response = await axios.post(`${import.meta.env.VITE_HOST_URL}/user/register`, {
             username: username.value,
             password: password.value,
+            birthday: birthday.value,
+            interests: interests.value
         });
 
         if (response.status === 200) {

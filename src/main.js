@@ -2,7 +2,7 @@ import { createApp } from "vue";
 import ElementPlus from "element-plus";
 import "./style.css";
 import App from "./App.vue";
-
+import axios from "axios";
 import router from "./router/index.js";
 import "bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";

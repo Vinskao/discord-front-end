@@ -11,7 +11,7 @@
     </div>
     <div v-else>
       <Group :groupId="selectedGroupId" />
-      <button @click="deselectGroup">Back</button>
+      <button @click="deselectGroup">返回</button>
     </div>
 
 
@@ -25,12 +25,26 @@ import { useRouter } from "vue-router";
 import Layout from "../layouts/Layout.vue";
 import Group from "../components/Group.vue";
 import axios from "axios";
+import { onBeforeRouteLeave } from 'vue-router';
 
 axios.defaults.withCredentials = true;
 const router = useRouter();
 const groups = ref([]);
 const selectedGroupId = ref(null);
-const isLoggedIn = ref(false);
+
+onBeforeRouteLeave((to, from) => {
+  // 当导航离开当前路由执行
+  deselectGroup();
+});
+
+window.addEventListener('beforeunload', (event) => {
+  // 调用 deselectGroup 函数
+  deselectGroup();
+
+  // 在一些浏览器中，需要设置 returnValue 属性来触发确认对话框
+  event.returnValue = 'Are you sure you want to leave?';
+});
+
 onMounted(async () => {
   await checkSession();
   try {

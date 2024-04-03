@@ -3,6 +3,13 @@
 <template>
     <Layout />
 
+    <div class="normal-info">
+        <h1 @click="toggleSection('normalInfo')">一般資料</h1>
+        <div v-if="sections.normalInfo" class="content">
+            <!-- 这里可以添加用于展示用户信息的HTML -->
+        </div>
+    </div>
+
     <div class="security-question">
         <h1 @click="toggleSection('securityQuestion')">安全問題</h1>
         <div v-if="sections.securityQuestion" class="content">
@@ -77,9 +84,27 @@ const newPassword = ref('');
 const route = useRoute();
 const resetPassword = ref(false);
 
-const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+const userInfo = ref({});
+const getUserInfo = async () => {
+    const localUserInfo = JSON.parse(localStorage.getItem('userInfo'));  // 从本地存储中获取用户信息
+    if (!localUserInfo) {
+        await Swal.fire('錯誤', '未找到用戶信息。請登錄。', 'error');
+        return;
+    }
 
+    try {
+        const response = await axios.post(`${import.meta.env.VITE_HOST_URL}/user/find-by-username`, {
+            username: localUserInfo.username  // 从本地存储的userInfo中获取用户名
+        });
+
+        userInfo.value = response.data;  // 将获取到的用户信息存储在userInfo中
+    } catch (error) {
+        console.error('获取用户信息失败:', error);
+        await Swal.fire('錯誤', '获取用户信息失败，请稍后再试。', 'error');
+    }
+};
 const sections = reactive({
+    normalInfo: false,
     securityQuestion: false,
     modifyInfo: false
 });

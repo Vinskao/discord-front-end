@@ -73,14 +73,19 @@ const handleRoomLeft = () => {
   selectedRoomId.value = null;
 };
 
-const selectRoom = (id) => {
+const selectRoom = async (id) => {
   console.log("Selected Room ID: ", id);
+
+  // 如果已经选择了房间且不是当前房间，则先离开当前房间
+  if (selectedRoomId.value && selectedRoomId.value !== id && roomComponent.value && typeof roomComponent.value.leaveRoom === "function") {
+    await roomComponent.value.leaveRoom(selectedRoomId.value);
+  }
+
+  // 更新 selectedRoomId 为新选中的房间ID
   selectedRoomId.value = id;
 
-  if (
-    roomComponent.value &&
-    typeof roomComponent.value.joinRoom === "function"
-  ) {
+  // 确保 Room 组件已加载并且 joinRoom 方法可用
+  if (roomComponent.value && typeof roomComponent.value.joinRoom === "function") {
     roomComponent.value.joinRoom(id);
   } else {
     console.error("joinRoom 方法不可用");
@@ -88,7 +93,6 @@ const selectRoom = (id) => {
 };
 </script>
 <style>
-/* 使用Flexbox布局 */
 .container {
   display: flex;
 }
@@ -96,43 +100,30 @@ const selectRoom = (id) => {
 .sidebar {
   flex: 1;
   background-color: #2c3e50;
-  /* 深藍色背景 */
   color: #fff;
-  /* 白色文本 */
   overflow-y: auto;
-  /* 如果聊天室太多，允許滾動 */
 }
 
 .room-entry {
   padding: 10px 15px;
-  /* 增加內邊距讓條目更易點擊和閱讀 */
   margin: 5px 0;
-  /* 添加上下邊距來分隔條目 */
   border-radius: 5px;
-  /* 添加圓角 */
   transition: background-color 0.3s;
-  /* 平滑過渡效果 */
   cursor: pointer;
-  /* 鼠標懸停時顯示手型指針 */
 }
 
 .room-entry:hover {
   background-color: #34495e;
-  /* 鼠標懸停時的背景顏色 */
 }
 
 .room {
   flex: 5;
   background-color: #1b1e1f;
-  /* 淺灰色背景 */
   overflow-y: auto;
-  /* 允許滾動 */
 }
 
 .selected-room {
   background-color: #2980b9;
-  /* 選中聊天室的背景色 */
   color: #fff;
-  /* 選中聊天室的文字顏色 */
 }
 </style>
