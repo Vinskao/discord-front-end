@@ -1,7 +1,10 @@
+<!-- src/layouts/Layouts.vue -->
+
 <script setup>
 import { useRouter } from "vue-router";
 import axios from "axios";
 import Swal from 'sweetalert2';
+axios.defaults.withCredentials = true;
 
 const router = useRouter();
 

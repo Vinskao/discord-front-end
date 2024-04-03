@@ -14,3 +14,22 @@ const app = createApp(App);
 window.$vueApp = app;
 
 app.use(ElementPlus, { locale: "zh-TW" }).use(router).mount("#app");
+
+axios.interceptors.response.use(
+    response => {
+        return response;
+    },
+    error => {
+        // 检查错误是否来自exportChatHistory
+        if (error.config && error.config.url.includes('/export-chat-history')) {
+            // 对exportChatHistory的错误处理保持原样
+            return Promise.reject(error);
+        }
+
+        if (error.response.status === 401 || error.response.status === 403) {
+            window.location.href = '/login';
+        }
+
+        return Promise.reject(error);
+    }
+);

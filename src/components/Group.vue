@@ -13,10 +13,13 @@
   </div>
 </template>
 
+
 <script setup>
 import { ref, watch, onMounted } from "vue";
 import Room from "../components/Room.vue";
 import axios from "axios";
+axios.defaults.withCredentials = true;
+
 const props = defineProps({
   groupId: Number // 接收一個名為 groupId 的 prop，類型為 Number
 });
@@ -27,16 +30,19 @@ const roomComponent = ref(null);
 onMounted(async () => {
   // 检查会话状态
   try {
-    const sessionResponse = await axios.post(`${import.meta.env.VITE_HOST_URL}/user/check-session`);
-    console.log(sessionResponse.data);
+    const userInfoResponse = await axios.post(`${import.meta.env.VITE_HOST_URL}/user/me`);
+    // 如果请求成功，说明用户已登录，可以继续加载群组房间信息
+    console.log("User info:", userInfoResponse.data);
 
-    if (sessionResponse.data === "0") {
-      // 如果用户未登录（会话检查返回0），重定向到登录页面
-      window.location.href = '/login'; // 使用window.location.href进行重定向
+    // 这里可以添加额外的逻辑，例如如果 userInfoResponse.data 为空，则判定为未登录
+    if (!userInfoResponse.data || Object.keys(userInfoResponse.data).length === 0) {
+      throw new Error('No user info returned'); // 抛出错误以便在 catch 块中处理
     }
   } catch (error) {
-    console.error("会话检查失败:", error);
+    console.error("用户未登录或会话已过期:", error);
+    router.push('/login');
   }
+
   // 加载群组房间信息
   try {
     const response = await axios.post(
@@ -68,6 +74,7 @@ const handleRoomLeft = () => {
 };
 
 const selectRoom = (id) => {
+  console.log("Selected Room ID: ", id);
   selectedRoomId.value = id;
 
   if (

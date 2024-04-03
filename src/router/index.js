@@ -27,6 +27,7 @@ const routes = [
     path: "/security",
     component: security,
     meta: { requiresAuth: true },
+    name: 'security'
   },
   {
     path: "/login",

@@ -3,21 +3,18 @@
   <div>
     <Layout />
 
-    <div v-if="isLoggedIn">
-      <div v-if="selectedGroupId === null">
-        <!-- 群组列表 -->
-        <div v-for="group in groups" :key="group.id" @click="selectGroup(group.id)" class="group-entry">
-          {{ group.name }}
-        </div>
-      </div>
-      <div v-else>
-        <Group :groupId="selectedGroupId" />
-        <button @click="deselectGroup">Back</button>
+    <div v-if="selectedGroupId === null">
+      <!-- 群组列表 -->
+      <div v-for="group in groups" :key="group.id" @click="selectGroup(group.id)" class="group-entry">
+        {{ group.name }}
       </div>
     </div>
     <div v-else>
-      <p>請登入。</p>
+      <Group :groupId="selectedGroupId" />
+      <button @click="deselectGroup">Back</button>
     </div>
+
+
 
   </div>
 </template>
@@ -28,6 +25,8 @@ import { useRouter } from "vue-router";
 import Layout from "../layouts/Layout.vue";
 import Group from "../components/Group.vue";
 import axios from "axios";
+
+axios.defaults.withCredentials = true;
 const router = useRouter();
 const groups = ref([]);
 const selectedGroupId = ref(null);
@@ -46,22 +45,24 @@ onMounted(async () => {
 
 // 检查用户会话的函数
 const checkSession = async () => {
+  // 检查会话状态
   try {
-    const response = await axios.post(`${import.meta.env.VITE_HOST_URL}/user/check-session`);
-    console.log(response.data);
+    const userInfoResponse = await axios.post(`${import.meta.env.VITE_HOST_URL}/user/me`);
+    // 如果请求成功，说明用户已登录，可以继续加载群组房间信息
+    console.log("User info:", userInfoResponse.data);
 
-    if (response.data === "0") {
-      isLoggedIn.value = false;
-    } else {
-      isLoggedIn.value = true;
+    // 这里可以添加额外的逻辑，例如如果 userInfoResponse.data 为空，则判定为未登录
+    if (!userInfoResponse.data || Object.keys(userInfoResponse.data).length === 0) {
+      throw new Error('No user info returned'); // 抛出错误以便在 catch 块中处理
     }
-
   } catch (error) {
-    console.error("Failed to check session:", error);
+    console.error("用户未登录或会话已过期:", error);
+    router.push('/login');
   }
 };
 
 const selectGroup = async (groupId) => {
+  console.log("Selected Group ID: ", groupId);
   selectedGroupId.value = groupId;
   const userInfoStr = localStorage.getItem("userInfo");
   const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;

@@ -39,15 +39,18 @@
       </div>
     </div>
   </div>
+  <button v-if="canExportChatHistory" @click="exportChatHistory">聊天紀錄下載</button>
+
 </template>
 <script setup>
-import { ref, watch, watchEffect, onMounted, onBeforeUnmount } from "vue";
+import { ref, watch, watchEffect, onMounted, onBeforeUnmount, nextTick } from "vue";
 import SockJS from "sockjs-client/dist/sockjs.min.js";
 import { Stomp } from "@stomp/stompjs";
 import axios from "axios";
+import Swal from 'sweetalert2';
 
 axios.defaults.withCredentials = true;
-
+const canExportChatHistory = ref(false);
 const messagesContainer = ref(null);
 const userInfo = ref(null);
 const currentUserUsername = ref("");
@@ -116,53 +119,54 @@ watch(
 watch(
   () => props.roomId,
   async (newRoomId, oldRoomId) => {
-    console.log(
-      `Current user: ${userInfo.value.username}, New Room ID: ${newRoomId}, Old Room ID: ${oldRoomId}`
-    );
+    console.log(`Current user: ${userInfo.value.username}, New Room ID: ${newRoomId}, Old Room ID: ${oldRoomId}`);
 
-    // 当从未选择房间状态切换到具体房间时，跳过离开房间的步骤
-    if (userInfo.value && oldRoomId) {
-      // 先从旧房间离开
-      try {
-        await axios.post(
-          `${import.meta.env.VITE_HOST_URL}/user-to-room/remove`,
-          {
-            username: userInfo.value.username,
-            roomId: oldRoomId,
-          }
-        );
-      } catch (error) {
-        console.error("離開舊房間時發生錯誤", error);
-      }
+    const currentRoomId = oldRoomId;
+    const targetRoomId = newRoomId;
+
+    // 检查用户信息是否完整
+    if (!userInfo.value) {
+      console.error("用户信息不完整，无法更改房间。");
+      return;
     }
 
-    if (userInfo.value && newRoomId) {
-      // 加入新房间
-      try {
-        await axios.post(`${import.meta.env.VITE_HOST_URL}/user-to-room/add`, {
-          username: userInfo.value.username,
-          roomId: newRoomId,
-        });
-      } catch (error) {
-        console.error("加入新房間時發生錯誤", error);
-      }
+    // 保证先完成离开房间的操作，再执行加入房间的操作
+    if (currentRoomId) {
+      await leaveRoom(currentRoomId);
+    }
+    if (targetRoomId) {
+      await joinRoom(targetRoomId);
     }
   },
   { immediate: true }
 );
 
 onMounted(async () => {
+  console.log("Room ID in Room Component: ", props.roomId);
   // 检查会话状态
   try {
-    const sessionResponse = await axios.post(`${import.meta.env.VITE_HOST_URL}/user/check-session`);
-    console.log(sessionResponse.data);
-    if (sessionResponse.data === "0") {
-      // 如果用户未登录（会话检查返回0），重定向到登录页面
-      window.location.href = '/login'; // 使用window.location.href进行重定向
+    const userInfoResponse = await axios.post(`${import.meta.env.VITE_HOST_URL}/user/me`);
+    // 如果请求成功，说明用户已登录，可以继续加载群组房间信息
+    console.log("User info:", userInfoResponse.data);
+
+    // 这里可以添加额外的逻辑，例如如果 userInfoResponse.data 为空，则判定为未登录
+    if (!userInfoResponse.data || Object.keys(userInfoResponse.data).length === 0) {
+      throw new Error('No user info returned'); // 抛出错误以便在 catch 块中处理
     }
   } catch (error) {
-    console.error("会话检查失败:", error);
+    console.error("用户未登录或会话已过期:", error);
+    router.push('/login');
   }
+
+  try {
+    const response = await axios.post(`${import.meta.env.VITE_HOST_URL}/user/me`);
+    // 假设权限字段是 'authorities'，且 'ADMIN' 有权限导出聊天记录
+    canExportChatHistory.value = response.data.authorities === 'ADMIN';
+  } catch (error) {
+    console.error('Error fetching user info:', error);
+    // 可以根据错误处理逻辑进一步处理，例如错误提示或重定向
+  }
+
   const userInfoStr = localStorage.getItem("userInfo"); // 從 localStorage 獲取用戶信息
   if (userInfoStr) {
     userInfo.value = JSON.parse(userInfoStr); // 解析並存儲用戶信息
@@ -182,12 +186,8 @@ const SOCKET_URL = `${import.meta.env.VITE_HOST_URL}/ws-message`;
 let isConnected = false;
 // 連接 STOMP
 const connectStomp = () => {
-  const socket = new SockJS(SOCKET_URL, null, {
-    transports: ["websocket", "xhr-streaming", "xhr-polling"],
-    withCredentials: true,
-  });
+  const socket = new SockJS(SOCKET_URL);
   stompClient = Stomp.over(socket);
-  stompClient.reconnect_delay = 5000;
 
   stompClient.connect(
     {},
@@ -195,10 +195,12 @@ const connectStomp = () => {
       isConnected = true;
       console.log("已連接至 STOMP!");
       // 订阅消息
-      stompClient.subscribe("/topic/message", (msg) => {
+      stompClient.subscribe(`/topic/message/${props.roomId}`, (msg) => {
+        console.log("Received message: ", msg);
+
         onStompMessageReceived(msg);
 
-        // 解析收到的消息
+
         const messageData = JSON.parse(msg.body);
         // 检查消息类型
         if (messageData.type === "JOIN" || messageData.type === "LEAVE") {
@@ -214,6 +216,7 @@ const connectStomp = () => {
 };
 // 接收到 STOMP 訊息時的處理函式
 const onStompMessageReceived = (msg) => {
+  console.log("New message received:", msg);
   const messageData = JSON.parse(msg.body);
   messages.value.push(messageData);
 };
@@ -221,15 +224,25 @@ const onStompMessageReceived = (msg) => {
 const sendMessage = () => {
   if (inputMessage.value.trim() !== "" && stompClient && isConnected) {
     const messageToSend = {
-      username: currentUserUsername.value, // 當前使用者
-      message: inputMessage.value, // 輸入的訊息
-      roomId: props.roomId, // 當前房間ID
-      type: "TEXT",
+      username: currentUserUsername.value, // 当前用户
+      message: inputMessage.value, // 输入的消息
+      roomId: props.roomId, // 当前房间ID
+      type: "TEXT", // 消息类型
     };
+
+    // 发送消息
     stompClient.send("/app/message", {}, JSON.stringify(messageToSend));
+
+    // 立即将消息添加到 messages 数组，以便在界面上显示
+    messages.value.push({
+      ...messageToSend,
+      time: new Date().toISOString(), // 添加当前时间作为消息时间
+    });
+
+    // 清空输入框
     inputMessage.value = "";
   } else {
-    console.error("STOMP 連接尚未建立。");
+    console.error("STOMP 连接尚未建立。");
   }
 };
 // 判斷是否為當前使用者的訊息
@@ -243,9 +256,8 @@ const joinRoom = async (roomId) => {
     console.error("未選擇聊天室，或用戶信息不完整，無法加入。");
     return;
   }
-  console.log(
-    `加入房間。使用者名稱：${userInfo.value.username}，房間ID：${roomId}`
-  );
+
+  console.log(`加入房間。使用者名稱：${userInfo.value.username}，房間ID：${roomId}`);
 
   const joinMessage = {
     username: userInfo.value.username,
@@ -266,6 +278,8 @@ const joinRoom = async (roomId) => {
     console.error("加入新房間時發生錯誤", error);
   }
 
+  await nextTick(); // 等待 Vue 更新 DOM 或状态
+
   await fetchRoomUsers(roomId); // 獲取房間內的用戶列表
 };
 
@@ -276,9 +290,7 @@ const leaveRoom = async (roomId) => {
     return;
   }
 
-  console.log(
-    `離開房間。使用者名稱：${userInfo.value.username}，房間ID：${props.roomId}`
-  );
+  console.log(`離開房間。使用者名稱：${userInfo.value.username}，房間ID：${props.roomId}`);
 
   const leaveMessage = {
     username: userInfo.value.username,
@@ -298,6 +310,8 @@ const leaveRoom = async (roomId) => {
   } catch (error) {
     console.error("離開房間時發生錯誤", error);
   }
+
+  await nextTick(); // 等待 Vue 更新 DOM 或状态
 
   await fetchRoomUsers(roomId); // 更新房間內的用戶列表
 
@@ -340,6 +354,36 @@ const fetchRoomUsers = async (roomId) => {
     console.error("獲取房間用戶時發生錯誤:", error);
   }
 };
+
+const exportChatHistory = async () => {
+  console.log(`Exporting chat history for room ID: ${props.roomId}`);
+
+  try {
+    const response = await axios.post(
+      `${import.meta.env.VITE_HOST_URL}/export-chat-history`,
+      { roomId: props.roomId },
+      { responseType: 'blob' }
+    );
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `chat_history_room_${props.roomId}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    console.log('Chat history download initiated.');
+  } catch (error) {
+    console.error("Error exporting chat history:", error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Oops...',
+      text: '你沒有權限喔!',
+    });
+  }
+};
+
 </script>
 
 <style>

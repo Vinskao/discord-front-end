@@ -1,8 +1,6 @@
 ### 功能分類
-1. 登入功能：/src/view/login.vue
-2. 資產檢索功能：/src/view/index.vue
-3. 上傳檔案功能：/src/view/index.vue
-4. 下載檔案功能：/src/view/index.vue
+1. 登入功能：/src/views/login.vue
+2. 聊天室群組選擇入口：/src/views/index.vue
 
 ### 預覽畫面
 
@@ -10,5 +8,13 @@
 1. npm i
 2. npm run dev
 
-### 上傳檔案功能
-1. 請使用/input/assets.csv來做上傳，並符合裡面預填的格式
+### 權限功能
+1. 請使用Admin帳號以使用匯出聊天紀錄功能
+
+chiaki@mli.com
+password
+
+1. 使用Normal帳號不會看到匯出聊天紀錄功能
+
+min@mli.com
+bbbb

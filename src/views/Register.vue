@@ -27,6 +27,7 @@ import Swal from 'sweetalert2';
 import Layout from "../layouts/Layout.vue";
 import { ref } from 'vue';
 import { useRouter } from "vue-router";
+axios.defaults.withCredentials = true;
 
 
 
