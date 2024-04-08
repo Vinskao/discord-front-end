@@ -54,7 +54,7 @@ onMounted(async () => {
       throw new Error("No user info returned"); // 抛出错误以便在 catch 块中处理
     }
   } catch (error) {
-    console.error("用户未登录或会话已过期:", error);
+    console.error("用戶未登錄或session已過期:", error);
     router.push("/login");
   }
 

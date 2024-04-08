@@ -23,6 +23,7 @@ const logout = async () => {
       showConfirmButton: false,
       timer: 700,
     });
+    sessionStorage.removeItem("bypassAuth");
     router.push("/login");
   } catch (error) {
     console.error("Error during logout:", error);

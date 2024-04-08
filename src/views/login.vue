@@ -91,7 +91,7 @@ const fetchSecurityQuestion = async () => {
     showSecurityQuestion.value = true;
   } catch (error) {
     console.error("Error fetching security question:", error);
-    await Swal.fire("錯誤", "無法獲取安全問題，請重試。", "error");
+    await Swal.fire("錯誤", "請先登入後設定安全問題", "error");
   }
 };
 
@@ -106,10 +106,11 @@ const verifySecurityAnswer = async () => {
       }
     );
     if (response.data) {
-      // Using state to pass the resetPassword flag
+      sessionStorage.setItem("bypassAuth", "true");
       router.push({
         name: "security",
         state: { resetPassword: true, username: forgotUsername.value },
+        query: { bypassAuth: "true" },
       });
     } else {
       await Swal.fire("錯誤", "答案不正確。", "error");

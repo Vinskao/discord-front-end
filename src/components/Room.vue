@@ -166,51 +166,6 @@ watch(
   { immediate: true }
 );
 
-// watch(
-//   () => props.roomId,
-//   (newRoomId, oldRoomId) => {
-//     // 直接使用防抖处理后的函数来处理 roomId 的变化
-//     handleRoomChange(newRoomId, oldRoomId);
-//   },
-//   { immediate: true }
-// );
-// watch(
-//   () => props.roomId,
-//   async (newRoomId) => {
-//     if (newRoomId != null) {
-//       await fetchRoomUsers(newRoomId);
-//     }
-//   },
-//   { immediate: true }
-// );
-
-// watch(
-//   () => props.roomId,
-//   (newRoomId) => {
-//     if (newRoomId) {
-//       // roomId 有效，执行操作
-//       loadMessages(newRoomId);
-//       fetchRoomUsers(newRoomId);
-//       reconnectStompAndSubscribe(newRoomId);
-//     } else {
-//       // roomId 无效，处理逻辑（例如清除数据或显示提示信息）
-//       messages.value = [];
-//       roomUsers.value = [];
-//     }
-//   },
-//   { immediate: true }
-// );
-
-// watch(
-//   () => props.roomId,
-//   (newRoomId, oldRoomId) => {
-//     console.log(`Room changed from ${oldRoomId} to ${newRoomId}`);
-//     if (newRoomId) {
-//       reconnectStompAndSubscribe(newRoomId);
-//     }
-//   },
-//   { immediate: true }
-// );
 let stompSubscription = null;
 // 重新连接STOMP并订阅新房间的主题
 const reconnectStompAndSubscribe = (newRoomId) => {
@@ -235,10 +190,6 @@ const reconnectStompAndSubscribe = (newRoomId) => {
           }
         }
 
-        // if (messageData.type === "USER_LIST") {
-        //   // 假设后端发送的消息体中包含了用户列表，字段名为 message
-        //   connectedUsers.value = messageData.message.split(','); // 将字符串分割成数组
-        // }
         onStompMessageReceived(msg);
       }
     );
@@ -270,7 +221,7 @@ onMounted(async () => {
       throw new Error("No user info returned"); // 抛出错误以便在 catch 块中处理
     }
   } catch (error) {
-    console.error("用户未登录或会话已过期:", error);
+    console.error("用戶未登錄或session已過期:", error);
     router.push("/login");
   }
 
@@ -355,17 +306,14 @@ const onStompMessageReceived = (msg) => {
   // 检查消息类型并相应地处理
   switch (messageData.type) {
     case "TEXT":
-      // 处理文本消息
       messages.value.push(messageData);
       break;
     case "JOIN":
-      // 处理加入房间的消息
       messages.value.push(messageData);
       fetchRoomUsers(props.roomId); // 刷新房间用户列表
       break;
     case "LEAVE":
       messages.value.push(messageData);
-      // 从 roomUsers 中移除离开的用户
       const userIndex = roomUsers.value.findIndex(
         (user) => user.username === messageData.username
       );
@@ -415,6 +363,39 @@ const joinRoom = async (roomId) => {
   console.log(
     `加入房間。使用者名稱：${userInfo.value.username}，房間ID：${roomId}`
   );
+
+  try {
+    // Step 1: Make a call to check if the user is already in the room
+    const response = await axios.post(
+      `${import.meta.env.VITE_HOST_URL}/user-to-room/get-by-room`,
+      { roomId }
+    );
+
+    // Handle the case where the room is empty (204 No Content)
+    let usersInRoom = [];
+    if (response.status === 204) {
+      console.log("The room is currently empty.");
+    } else {
+      usersInRoom = response.data;
+    }
+    // Step 2: Check if the current user is in the list
+    const isUserInRoom = usersInRoom.some(
+      (user) => user.username === userInfo.value.username
+    );
+
+    // Step 3: If user is found, show SweetAlert and return
+    if (isUserInRoom) {
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "你已經在該聊天室中，不能重複加入！",
+      });
+      return;
+    }
+  } catch (error) {
+    console.error("檢查用戶是否已在房間中時發生錯誤", error);
+    return;
+  }
   messages.value = [];
 
   // 重新加载新房间的消息
