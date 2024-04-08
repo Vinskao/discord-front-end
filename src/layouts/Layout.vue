@@ -3,28 +3,33 @@
 <script setup>
 import { useRouter } from "vue-router";
 import axios from "axios";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
+import { ref } from "vue";
+import { useStore } from "vuex";
+
 axios.defaults.withCredentials = true;
 
 const router = useRouter();
+const store = useStore();
 
 const logout = async () => {
+  store.dispatch("disconnectStomp");
   try {
     await axios.post(`${import.meta.env.VITE_HOST_URL}/user/logout`);
     localStorage.removeItem("userInfo");
     await Swal.fire({
-      icon: 'success',
-      title: '您已登出',
+      icon: "success",
+      title: "您已登出",
       showConfirmButton: false,
-      timer: 700
+      timer: 700,
     });
     router.push("/login");
   } catch (error) {
     console.error("Error during logout:", error);
     Swal.fire({
-      icon: 'error',
-      title: 'Oops...',
-      text: '請重試'
+      icon: "error",
+      title: "Oops...",
+      text: "請重試",
     });
   }
 };
@@ -68,7 +73,9 @@ const logout = async () => {
         <router-link class="nav-item nav-link" to="/register">註冊</router-link>
         <router-link class="nav-item nav-link" to="/login">登入</router-link>
         <router-link class="nav-item nav-link" to="/security">安全</router-link>
-        <button class="nav-item nav-link logout-button" @click="logout">登出</button>
+        <button class="nav-item nav-link logout-button" @click="logout">
+          登出
+        </button>
       </div>
     </div>
   </nav>

@@ -8,17 +8,24 @@
     <div v-else class="room-content">
       <div class="room">
         <div class="messages" ref="messagesContainer">
-          <div v-for="(msg, index) in messages" :key="index" :class="{
-      'my-message': isMyMessage(msg.username),
-      'other-message': !isMyMessage(msg.username),
-      'system-message': msg.type === 'JOIN' || msg.type === 'LEAVE',
-    }" class="message">
+          <div
+            v-for="(msg, index) in messages"
+            :key="index"
+            :class="{
+              'my-message': isMyMessage(msg.username),
+              'other-message': !isMyMessage(msg.username),
+              'system-message': msg.type === 'JOIN' || msg.type === 'LEAVE',
+            }"
+            class="message"
+          >
             <div v-if="msg.type === 'JOIN' || msg.type === 'LEAVE'">
               <em>{{ msg.message }}</em>
               <span class="message-time">{{ formatTime(msg.time) }}</span>
             </div>
             <div v-else>
-              <strong>{{ msg.username ? msg.username.split("@")[0] : '' }}：</strong>
+              <strong
+                >{{ msg.username ? msg.username.split("@")[0] : "" }}：</strong
+              >
               {{ msg.message }}
               <span class="message-time">{{ formatTime(msg.time) }}</span>
             </div>
@@ -26,7 +33,11 @@
         </div>
 
         <div class="input-area">
-          <input type="text" v-model="inputMessage" placeholder="請輸入訊息..." />
+          <input
+            type="text"
+            v-model="inputMessage"
+            placeholder="請輸入訊息..."
+          />
           <button @click="sendMessage" :disabled="!isMessageValid">傳</button>
           <button @click="leaveRoom(props.roomId)" class="leave-btn">離</button>
         </div>
@@ -44,16 +55,25 @@
       </div> -->
     </div>
   </div>
-  <button v-if="canExportChatHistory" @click="exportChatHistory">聊天紀錄下載</button>
-
+  <button v-if="canExportChatHistory" @click="exportChatHistory">
+    聊天紀錄下載
+  </button>
 </template>
 <script setup>
-import { ref, watch, watchEffect, onMounted, onBeforeUnmount, nextTick, computed } from "vue";
+import {
+  ref,
+  watch,
+  watchEffect,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+  computed,
+} from "vue";
 import SockJS from "sockjs-client/dist/sockjs.min.js";
 import { Stomp } from "@stomp/stompjs";
 import axios from "axios";
-import Swal from 'sweetalert2';
-import { onBeforeRouteLeave } from 'vue-router';
+import Swal from "sweetalert2";
+import { onBeforeRouteLeave } from "vue-router";
 
 axios.defaults.withCredentials = true;
 const connectedUsers = ref([]);
@@ -93,7 +113,7 @@ const formatTime = (timeString) => {
 };
 
 // 三種方法確保在任何方式離開聊天室都會觸發leaveRoom
-window.addEventListener('beforeunload', () => {
+window.addEventListener("beforeunload", () => {
   if (props.roomId && currentUserUsername.value) {
     leaveRoom(props.roomId);
   }
@@ -103,7 +123,7 @@ onBeforeRouteLeave((to, from) => {
     leaveRoom(props.roomId);
   }
 });
-window.addEventListener('beforeunload', () => {
+window.addEventListener("beforeunload", () => {
   if (props.roomId && currentUserUsername.value) {
     const leaveMessage = {
       username: currentUserUsername.value,
@@ -117,7 +137,6 @@ window.addEventListener('beforeunload', () => {
   }
 });
 
-
 // 监视 messages 数组的变化
 watchEffect(() => {
   if (messages.value.length > 0 && messagesContainer.value) {
@@ -130,21 +149,22 @@ watchEffect(() => {
 });
 
 const changeRoom = async (newRoomId) => {
-
   if (newRoomId) {
-    currentRoomId.value = newRoomId;  // 更新 currentRoomId
-    await joinRoom(newRoomId);  // 加入新房间的逻辑
+    currentRoomId.value = newRoomId; // 更新 currentRoomId
+    await joinRoom(newRoomId); // 加入新房间的逻辑
   }
-  console.log("完成join api", newRoomId)
-
+  console.log("完成join api", newRoomId);
 };
 
-watch(currentRoomId, async (newRoomId, oldRoomId) => {
-  if (newRoomId !== oldRoomId) {
-    await changeRoom(newRoomId);
-  }
-}, { immediate: true });
-
+watch(
+  currentRoomId,
+  async (newRoomId, oldRoomId) => {
+    if (newRoomId !== oldRoomId) {
+      await changeRoom(newRoomId);
+    }
+  },
+  { immediate: true }
+);
 
 // watch(
 //   () => props.roomId,
@@ -164,7 +184,6 @@ watch(currentRoomId, async (newRoomId, oldRoomId) => {
 //   { immediate: true }
 // );
 
-
 // watch(
 //   () => props.roomId,
 //   (newRoomId) => {
@@ -181,7 +200,6 @@ watch(currentRoomId, async (newRoomId, oldRoomId) => {
 //   },
 //   { immediate: true }
 // );
-
 
 // watch(
 //   () => props.roomId,
@@ -201,29 +219,32 @@ const reconnectStompAndSubscribe = (newRoomId) => {
       stompSubscription.unsubscribe();
     }
     // 订阅接收消息的主题
-    stompSubscription = stompClient.subscribe(`/topic/message/${newRoomId}`, (msg) => {
-      const messageData = JSON.parse(msg.body);
-      // 当用户加入时，将其添加到 connectedUsers
-      if (messageData.type === "JOIN") {
-        connectedUsers.value.push(messageData.username);
-      }
-      // 当用户离开时，从 connectedUsers 中移除
-      else if (messageData.type === "LEAVE") {
-        const index = connectedUsers.value.indexOf(messageData.username);
-        if (index > -1) {
-          connectedUsers.value.splice(index, 1);
+    stompSubscription = stompClient.subscribe(
+      `/topic/message/${newRoomId}`,
+      (msg) => {
+        const messageData = JSON.parse(msg.body);
+        // 当用户加入时，将其添加到 connectedUsers
+        if (messageData.type === "JOIN") {
+          connectedUsers.value.push(messageData.username);
         }
-      }
+        // 当用户离开时，从 connectedUsers 中移除
+        else if (messageData.type === "LEAVE") {
+          const index = connectedUsers.value.indexOf(messageData.username);
+          if (index > -1) {
+            connectedUsers.value.splice(index, 1);
+          }
+        }
 
-      // if (messageData.type === "USER_LIST") {
-      //   // 假设后端发送的消息体中包含了用户列表，字段名为 message
-      //   connectedUsers.value = messageData.message.split(','); // 将字符串分割成数组
-      // }
-      onStompMessageReceived(msg);
-    });
+        // if (messageData.type === "USER_LIST") {
+        //   // 假设后端发送的消息体中包含了用户列表，字段名为 message
+        //   connectedUsers.value = messageData.message.split(','); // 将字符串分割成数组
+        // }
+        onStompMessageReceived(msg);
+      }
+    );
 
     // 订阅用户列表更新的主题
-    stompClient.subscribe('/topic/message', (message) => {
+    stompClient.subscribe("/topic/message", (message) => {
       const updatedUserList = JSON.parse(message.body);
       connectedUsers.value = updatedUserList; // 使用 Vue 3 的 Composition API
     });
@@ -232,28 +253,35 @@ const reconnectStompAndSubscribe = (newRoomId) => {
 
 onMounted(async () => {
   console.log("Room ID in Room Component: ", props.roomId);
-  currentRoomId.value = props.roomId
+  currentRoomId.value = props.roomId;
   // 检查会话状态
   try {
-    const userInfoResponse = await axios.post(`${import.meta.env.VITE_HOST_URL}/user/me`);
+    const userInfoResponse = await axios.post(
+      `${import.meta.env.VITE_HOST_URL}/user/me`
+    );
     // 如果请求成功，说明用户已登录，可以继续加载群组房间信息
     console.log("User info:", userInfoResponse.data);
 
     // 这里可以添加额外的逻辑，例如如果 userInfoResponse.data 为空，则判定为未登录
-    if (!userInfoResponse.data || Object.keys(userInfoResponse.data).length === 0) {
-      throw new Error('No user info returned'); // 抛出错误以便在 catch 块中处理
+    if (
+      !userInfoResponse.data ||
+      Object.keys(userInfoResponse.data).length === 0
+    ) {
+      throw new Error("No user info returned"); // 抛出错误以便在 catch 块中处理
     }
   } catch (error) {
     console.error("用户未登录或会话已过期:", error);
-    router.push('/login');
+    router.push("/login");
   }
 
   try {
-    const response = await axios.post(`${import.meta.env.VITE_HOST_URL}/user/me`);
+    const response = await axios.post(
+      `${import.meta.env.VITE_HOST_URL}/user/me`
+    );
     // 假设权限字段是 'authorities'，且 'ADMIN' 有权限导出聊天记录
-    canExportChatHistory.value = response.data.authorities === 'ADMIN';
+    canExportChatHistory.value = response.data.authorities === "ADMIN";
   } catch (error) {
-    console.error('Error fetching user info:', error);
+    console.error("Error fetching user info:", error);
     // 可以根据错误处理逻辑进一步处理，例如错误提示或重定向
   }
 
@@ -286,7 +314,7 @@ const connectStomp = () => {
   console.log("Attempting to connect to STOMP with roomId:", props.roomId);
 
   stompClient.connect(
-    { "roomId": props.roomId },
+    { roomId: props.roomId },
     (frame) => {
       isConnected = true;
       console.log("已連接至 STOMP!");
@@ -295,7 +323,6 @@ const connectStomp = () => {
         console.log("Received message: ", msg);
 
         onStompMessageReceived(msg);
-
 
         const messageData = JSON.parse(msg.body);
         // 检查消息类型
@@ -312,7 +339,7 @@ const connectStomp = () => {
           leaveRoom(props.roomId);
         }
 
-        router.push('/login');
+        router.push("/login");
       };
     },
     (error) => {
@@ -327,25 +354,27 @@ const onStompMessageReceived = (msg) => {
 
   // 检查消息类型并相应地处理
   switch (messageData.type) {
-    case 'TEXT':
+    case "TEXT":
       // 处理文本消息
       messages.value.push(messageData);
       break;
-    case 'JOIN':
+    case "JOIN":
       // 处理加入房间的消息
       messages.value.push(messageData);
       fetchRoomUsers(props.roomId); // 刷新房间用户列表
       break;
-    case 'LEAVE':
+    case "LEAVE":
       messages.value.push(messageData);
       // 从 roomUsers 中移除离开的用户
-      const userIndex = roomUsers.value.findIndex(user => user.username === messageData.username);
+      const userIndex = roomUsers.value.findIndex(
+        (user) => user.username === messageData.username
+      );
       if (userIndex !== -1) {
         roomUsers.value.splice(userIndex, 1);
       }
       break;
     default:
-      console.warn('Received unknown message type:', messageData.type);
+      console.warn("Received unknown message type:", messageData.type);
   }
 };
 // 發送訊息
@@ -383,7 +412,9 @@ const joinRoom = async (roomId) => {
     return;
   }
 
-  console.log(`加入房間。使用者名稱：${userInfo.value.username}，房間ID：${roomId}`);
+  console.log(
+    `加入房間。使用者名稱：${userInfo.value.username}，房間ID：${roomId}`
+  );
   messages.value = [];
 
   // 重新加载新房间的消息
@@ -426,7 +457,9 @@ const leaveRoom = async (roomId) => {
     return;
   }
 
-  console.log(`離開房間。使用者名稱：${userInfo.value.username}，房間ID：${props.roomId}`);
+  console.log(
+    `離開房間。使用者名稱：${userInfo.value.username}，房間ID：${props.roomId}`
+  );
 
   const leaveMessage = {
     username: userInfo.value.username,
@@ -436,8 +469,13 @@ const leaveRoom = async (roomId) => {
   };
 
   // 發送離開房間的消息
-  stompClient.send("/app/message", {}, JSON.stringify(leaveMessage));
-
+  if (stompClient && stompClient.connected) {
+    stompClient.send("/app/message", {}, JSON.stringify(leaveMessage));
+  } else {
+    console.error("STOMP client is not connected. Cannot send leave message.");
+    // reconnecting
+    attemptReconnect();
+  }
   try {
     await axios.post(`${import.meta.env.VITE_HOST_URL}/user-to-room/remove`, {
       username: userInfo.value.username,
@@ -453,6 +491,27 @@ const leaveRoom = async (roomId) => {
 
   // 通知父組件房間已離開
   emit("roomLeft");
+};
+
+const attemptReconnect = () => {
+  if (!stompClient) {
+    stompClient = Stomp.over(new SockJS(SOCKET_URL));
+  }
+
+  // Attempt to reconnect
+  stompClient.connect(
+    {},
+    (frame) => {
+      isConnected = true;
+      console.log("Reconnected to STOMP server.");
+      // Retry sending the leave message or any other pending actions here
+    },
+    (error) => {
+      isConnected = false;
+      console.error("Failed to reconnect to STOMP server:", error);
+      // Handle reconnection failure (e.g., retry after a delay)
+    }
+  );
 };
 
 defineExpose({
@@ -478,7 +537,6 @@ const loadMessages = async (roomId) => {
   }
 };
 
-
 const fetchRoomUsers = async (roomId) => {
   try {
     const response = await axios.post(
@@ -498,28 +556,27 @@ const exportChatHistory = async () => {
     const response = await axios.post(
       `${import.meta.env.VITE_HOST_URL}/export-chat-history`,
       { roomId: props.roomId },
-      { responseType: 'blob' }
+      { responseType: "blob" }
     );
 
     const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.setAttribute('download', `chat_history_room_${props.roomId}.xlsx`);
+    link.setAttribute("download", `chat_history_room_${props.roomId}.xlsx`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    console.log('Chat history download initiated.');
+    console.log("Chat history download initiated.");
   } catch (error) {
     console.error("Error exporting chat history:", error);
     Swal.fire({
-      icon: 'error',
-      title: 'Oops...',
-      text: '你沒有權限喔!',
+      icon: "error",
+      title: "Oops...",
+      text: "你沒有權限喔!",
     });
   }
 };
-
 </script>
 
 <style>

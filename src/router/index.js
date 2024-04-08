@@ -16,7 +16,6 @@ const routes = [
   {
     path: "/register",
     component: register,
-    meta: { requiresAuth: true },
   },
   {
     path: "/index",
@@ -27,7 +26,7 @@ const routes = [
     path: "/security",
     component: security,
     meta: { requiresAuth: true },
-    name: 'security'
+    name: "security",
   },
   {
     path: "/login",
@@ -41,19 +40,24 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
-  if (to.matched.some(record => record.meta.requiresAuth)) {
-    const response = await axios.post(`${import.meta.env.VITE_HOST_URL}/user/check-session`)
-      .catch((error) => {
-        console.error("Failed to check session:", error);
-        return null;
-      });
-
-    if (response && response.data === "0") {
-      next({ path: '/login', query: { redirect: to.fullPath } });
-    } else {
-      next();
+  if (to.matched.some((record) => record.meta.requiresAuth)) {
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_HOST_URL}/user/me`
+      );
+      if (response && response.status === 200) {
+        // 用户已登录
+        next();
+      } else {
+        throw new Error("Unauthorized");
+      }
+    } catch (error) {
+      console.error("用户未登录或会话已过期:", error);
+      // 未通过认证，重定向到登录页面，并附带原本想要访问的页面路径，方便登录后跳转。
+      next({ path: "/login", query: { redirect: to.fullPath } });
     }
   } else {
+    // 对于不需要身份验证的路由，直接放行
     next();
   }
 });

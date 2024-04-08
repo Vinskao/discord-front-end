@@ -1,4 +1,6 @@
-<!doctype html>
+<!-- /index.html -->
+
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -11,3 +13,8 @@
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
+<script>
+  if (typeof window !== "undefined") {
+    window.global = window;
+  }
+</script>
