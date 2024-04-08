@@ -7,23 +7,11 @@
     <form @submit.prevent="login">
       <div class="mb-3">
         <label for="username" class="form-label">Username</label>
-        <input
-          type="text"
-          class="form-control"
-          id="id"
-          v-model="username"
-          required
-        />
+        <input type="text" class="form-control" id="id" v-model="username" required />
       </div>
       <div class="mb-3">
         <label for="password" class="form-label">Password</label>
-        <input
-          type="password"
-          class="form-control"
-          id="password"
-          v-model="password"
-          required
-        />
+        <input type="password" class="form-control" id="password" v-model="password" required />
       </div>
       <button type="submit" class="btn blue-button">登入</button>
     </form>
@@ -33,17 +21,8 @@
   <button @click="toggleForgotPassword" class="blue-button">忘記密碼？</button>
 
   <div v-if="showForgotPassword" class="blue-text">
-    <input
-      v-if="!showSecurityQuestion"
-      type="text"
-      v-model="forgotUsername"
-      placeholder="請輸入您的用戶名"
-    />
-    <button
-      v-if="!showSecurityQuestion"
-      @click="fetchSecurityQuestion"
-      class="blue-button"
-    >
+    <input v-if="!showSecurityQuestion" type="text" v-model="forgotUsername" placeholder="請輸入您的用戶名" />
+    <button v-if="!showSecurityQuestion" @click="fetchSecurityQuestion" class="blue-button">
       提交
     </button>
 
@@ -65,6 +44,7 @@ import { useRouter } from "vue-router";
 import Swal from "sweetalert2";
 
 axios.defaults.withCredentials = true;
+const userLoggedIn = ref(false);
 const username = ref("");
 const password = ref("");
 const errorMessage = ref("");
@@ -138,14 +118,12 @@ const login = async () => {
         `${import.meta.env.VITE_HOST_URL}/user/me`
       );
       localStorage.setItem("userInfo", JSON.stringify(userInfoResponse.data)); // 保存用户信息到localStorage
-      router.push("/index"); // 重定向到首页
-      // 登录成功后调用API清除与用户相关的房间和群组数据
+      router.push("/index");
       console.log("現在的login username是" + username.value);
 
       try {
         await axios.post(
-          `${
-            import.meta.env.VITE_HOST_URL
+          `${import.meta.env.VITE_HOST_URL
           }/user-to-room/delete-all-by-username`,
           JSON.stringify({ username: username.value }),
           { headers: { "Content-Type": "application/json" } }
@@ -156,8 +134,7 @@ const login = async () => {
 
       try {
         await axios.post(
-          `${
-            import.meta.env.VITE_HOST_URL
+          `${import.meta.env.VITE_HOST_URL
           }/user-to-group/delete-all-by-username`,
           JSON.stringify({ username: username.value }),
           { headers: { "Content-Type": "application/json" } }
@@ -168,9 +145,9 @@ const login = async () => {
     } else {
       errorMessage.value = "Invalid username or password";
     }
+
   } catch (error) {
     if (error.response && error.response.status === 401) {
-      // 如果返回401未授权，清除可能存在的用户信息并重定向到登录页面
       localStorage.removeItem("userInfo");
       router.push("/login");
       errorMessage.value = "Invalid username or password";
@@ -181,6 +158,7 @@ const login = async () => {
     }
   }
 };
+
 </script>
 
 <style scoped>
@@ -199,19 +177,17 @@ const login = async () => {
   margin-top: 10px;
 }
 
-/* 定义蓝色字体样式 */
 .blue-text {
-  color: #82a6cb; /* Bootstrap 主题蓝色 */
+  color: #82a6cb;
 }
 
-/* 定义蓝色按钮样式 */
 .blue-button {
-  background-color: #007bff; /* Bootstrap 主题蓝色 */
-  color: white; /* 按钮文本颜色 */
-  border: none; /* 移除边框 */
+  background-color: #007bff;
+  color: white;
+  border: none;
 }
 
 .blue-button:hover {
-  background-color: #0056b3; /* 深蓝色 */
+  background-color: #0056b3;
 }
 </style>

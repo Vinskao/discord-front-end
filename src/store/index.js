@@ -8,10 +8,18 @@ const SOCKET_URL = `${import.meta.env.VITE_HOST_URL}/ws-message`;
 export const store = createStore({
   state: {
     stompClient: null,
+    isInRoom: false,
   },
   mutations: {
     setStompClient(state, client) {
       state.stompClient = client;
+    },
+    setIsInRoom(state, isInRoom) {
+      state.isInRoom = isInRoom;
+    },
+    updateOnlineUsers(state, onlineUsers) {
+      console.log("Updating online users:", onlineUsers);
+      state.onlineUsers = onlineUsers;
     },
   },
   actions: {
@@ -26,6 +34,12 @@ export const store = createStore({
       if (state.stompClient && state.stompClient.connected) {
         state.stompClient.disconnect();
       }
+    },
+    enterRoom({ commit }) {
+      commit("setIsInRoom", true);
+    },
+    leaveRoom({ commit }) {
+      commit("setIsInRoom", false);
     },
   },
 });

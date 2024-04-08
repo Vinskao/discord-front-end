@@ -8,24 +8,17 @@
     <div v-else class="room-content">
       <div class="room">
         <div class="messages" ref="messagesContainer">
-          <div
-            v-for="(msg, index) in messages"
-            :key="index"
-            :class="{
-              'my-message': isMyMessage(msg.username),
-              'other-message': !isMyMessage(msg.username),
-              'system-message': msg.type === 'JOIN' || msg.type === 'LEAVE',
-            }"
-            class="message"
-          >
+          <div v-for="(msg, index) in messages" :key="index" :class="{
+      'my-message': isMyMessage(msg.username),
+      'other-message': !isMyMessage(msg.username),
+      'system-message': msg.type === 'JOIN' || msg.type === 'LEAVE',
+    }" class="message">
             <div v-if="msg.type === 'JOIN' || msg.type === 'LEAVE'">
               <em>{{ msg.message }}</em>
               <span class="message-time">{{ formatTime(msg.time) }}</span>
             </div>
             <div v-else>
-              <strong
-                >{{ msg.username ? msg.username.split("@")[0] : "" }}：</strong
-              >
+              <strong>{{ msg.username ? msg.username.split("@")[0] : "" }}：</strong>
               {{ msg.message }}
               <span class="message-time">{{ formatTime(msg.time) }}</span>
             </div>
@@ -33,11 +26,7 @@
         </div>
 
         <div class="input-area">
-          <input
-            type="text"
-            v-model="inputMessage"
-            placeholder="請輸入訊息..."
-          />
+          <input type="text" v-model="inputMessage" placeholder="請輸入訊息..." />
           <button @click="sendMessage" :disabled="!isMessageValid">傳</button>
           <button @click="leaveRoom(props.roomId)" class="leave-btn">離</button>
         </div>
@@ -48,11 +37,6 @@
           {{ user.username.split("@")[0] }}
         </div>
       </div>
-      <!-- <div class="user-sidebar">
-        <div v-for="user in connectedUsers" :key="user" class="user-entry">
-          {{ user.split("@")[0] }}
-        </div>
-      </div> -->
     </div>
   </div>
   <button v-if="canExportChatHistory" @click="exportChatHistory">
@@ -66,6 +50,7 @@ import {
   watchEffect,
   onMounted,
   onBeforeUnmount,
+  onUnmounted,
   nextTick,
   computed,
 } from "vue";
@@ -74,8 +59,13 @@ import { Stomp } from "@stomp/stompjs";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { onBeforeRouteLeave } from "vue-router";
+// import { eventBus } from '../router/eventBus.js';
+import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 
 axios.defaults.withCredentials = true;
+const store = useStore();
+const router = useRouter();
 const connectedUsers = ref([]);
 const currentRoomId = ref(null);
 const canExportChatHistory = ref(false);
@@ -88,6 +78,7 @@ const inputMessage = ref("");
 let stompClient = null;
 const roomUsers = ref([]);
 const userInfoStr = localStorage.getItem("userInfo");
+
 
 if (userInfoStr) {
   const userInfo = JSON.parse(userInfoStr);
@@ -194,15 +185,28 @@ const reconnectStompAndSubscribe = (newRoomId) => {
       }
     );
 
-    // 订阅用户列表更新的主题
     stompClient.subscribe("/topic/message", (message) => {
-      const updatedUserList = JSON.parse(message.body);
-      connectedUsers.value = updatedUserList; // 使用 Vue 3 的 Composition API
+      try {
+        const updatedUserList = JSON.parse(message.body);
+        if (Array.isArray(updatedUserList)) {
+          connectedUsers.value = updatedUserList;
+        } else {
+          console.error('Received user list is not an array:', message.body);
+        }
+      } catch (error) {
+        console.error('Error parsing user list:', error);
+      }
     });
   }
 };
 
+onUnmounted(() => {
+  store.dispatch('leaveRoom');
+});
+
 onMounted(async () => {
+  console.log("Room.vue mounted");
+  store.dispatch('enterRoom');
   console.log("Room ID in Room Component: ", props.roomId);
   currentRoomId.value = props.roomId;
   // 检查会话状态
@@ -242,6 +246,18 @@ onMounted(async () => {
   }
   connectStomp();
   await loadMessages();
+  // eventBus.on('logout', () => {
+  //   if (currentRoomId.value && userInfo.value) {
+  //     leaveRoom(currentRoomId.value).then(() => {
+  //       // 可以在这里执行断开连接或其他清理操作
+  //       if (stompClient && isConnected) {
+  //         stompClient.disconnect(() => {
+  //           console.log("STOMP client disconnected on logout.");
+  //         });
+  //       }
+  //     });
+  //   }
+  // });
 });
 // 組件卸載前執行
 onBeforeUnmount(() => {
@@ -265,39 +281,73 @@ const connectStomp = () => {
   console.log("Attempting to connect to STOMP with roomId:", props.roomId);
 
   stompClient.connect(
-    { roomId: props.roomId },
+    {},
     (frame) => {
       isConnected = true;
-      console.log("已連接至 STOMP!");
-      // 订阅消息
+      console.log("Connected to STOMP!");
+
+      // 订阅房间的消息
       stompClient.subscribe(`/topic/message/${props.roomId}`, (msg) => {
-        console.log("Received message: ", msg);
-
-        onStompMessageReceived(msg);
-
         const messageData = JSON.parse(msg.body);
-        // 检查消息类型
+        console.log("Received message: ", messageData);
+
+        // 根据消息类型处理消息
+        switch (messageData.type) {
+          case "TEXT":
+          case "JOIN":
+          case "LEAVE":
+            messages.value.push(messageData);
+            break;
+          default:
+            console.warn("Received unknown message type:", messageData.type);
+        }
+
+        // 如果是加入或离开消息，则刷新房间用户列表
         if (messageData.type === "JOIN" || messageData.type === "LEAVE") {
-          // 如果有人加入或离开，更新用户列表
           fetchRoomUsers(props.roomId);
         }
       });
+
+      // 订阅房间的用户列表更新
+      stompClient.subscribe('/topic/message', (message) => {
+        const messageData = JSON.parse(message.body);
+        console.log("Received message from /topic/message:", messageData);
+        if (messageData.type === 'USER_LIST') {
+          // 将在线用户列表保存到全局状态中
+          store.commit('updateOnlineUsers', messageData.message.split(','));
+        }
+      });
+      // stompClient.subscribe(`/topic/userlist/${props.roomId}`, (message) => {
+      //   const messageData = JSON.parse(message.body);
+      //   if (messageData.type === "USER_LIST") {
+      //     // 确保 message 字段存在且为字符串
+      //     if (messageData.message && typeof messageData.message === 'string') {
+      //       // 将逗号分隔的字符串转换为数组
+      //       const userList = messageData.message.split(',');
+      //       // 更新 roomUsers，将每个用户名转换为所需的对象格式
+      //       roomUsers.value = userList.map(username => ({ username }));
+      //     } else {
+      //       console.error('USER_LIST message does not contain a valid string:', messageData.message);
+      //     }
+      //   }
+      // });
+
       // 监听 WebSocket 连接关闭事件
       socket.onclose = () => {
-        console.log("WebSocket 连接已关闭，尝试自动离开房间");
-        // 调用 leaveRoom 方法
+        console.log("WebSocket connection closed");
         if (props.roomId && userInfo.value) {
           leaveRoom(props.roomId);
         }
-
-        router.push("/login");
+        router.push("/index");
       };
     },
     (error) => {
-      console.error("WebSocket 發生錯誤:", error);
+      isConnected = false;
+      console.error("Error connecting to STOMP:", error);
     }
   );
 };
+
 // 接收到 STOMP 訊息時的處理函式
 const onStompMessageReceived = (msg) => {
   console.log("New message received:", msg);
